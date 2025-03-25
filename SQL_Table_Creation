@@ -1,0 +1,133 @@
+import pyodbc
+
+# Connection details
+server = 'tcp:mcruebs04.isad.isadroot.ex.ac.uk'
+database = 'BEMM459_GroupAC'
+username = 'GroupAC'
+password = 'NauX781*Ek'
+
+serverstring = ('DRIVER={SQL Server};SERVER='+server+';DATABASE='+database+';UID='+username+';PWD='+ password+';TrustServerCertificate=yes;Encrypt=no;')
+
+cnxn = pyodbc.connect(serverstring)
+cursor = cnxn.cursor()
+
+Enter_All_Tables = '''
+CREATE TABLE Employee_Data (
+    employee_id INT IDENTITY(1,1) PRIMARY KEY,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    Department VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    role_ID INT NOT NULL
+);
+
+CREATE TABLE Roles (
+    role_id INT IDENTITY(1,1) PRIMARY KEY,
+    role_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Permissions (
+    permission_id INT IDENTITY(1,1) PRIMARY KEY,
+    permission_description VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Roles_Permissions (
+    role_id INT NOT NULL,
+    permission_id INT NOT NULL,
+    PRIMARY KEY(role_id, permission_id),
+    FOREIGN KEY (role_id) REFERENCES Roles(role_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (permission_id) REFERENCES Permissions(permission_id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE Protocol_Data (
+    protocol_id INT PRIMARY KEY,
+    protocol_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Network_Usage (
+    network_usage_id INT IDENTITY(1,1) PRIMARY KEY,
+    employee_id INT NOT NULL,
+    timestamp DATETIME NOT NULL,
+    data_transfered_MB FLOAT NOT NULL,
+    protocol_id INT NOT NULL,
+    destination_ip VARCHAR(255) NOT NULL,
+    FOREIGN KEY (employee_id) REFERENCES Employee_Data(employee_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (protocol_id) REFERENCES Protocol_Data(protocol_id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE Access_Type (
+    access_type_id INT IDENTITY(1,1) PRIMARY KEY,
+    access_type_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE File_Data (
+    file_id INT IDENTITY(1,1) PRIMARY KEY,
+    file_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE File_Access (
+    access_id INT IDENTITY(1,1) PRIMARY KEY,
+    employee_id INT NOT NULL,
+    access_type_id INT NOT NULL,
+    timestamp DATETIME NOT NULL,
+    file_id INT NOT NULL,
+    FOREIGN KEY (employee_id) REFERENCES Employee_Data(employee_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (access_type_id) REFERENCES Access_Type(access_type_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (file_id) REFERENCES File_Data(file_id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE Security_Incidents (
+    incident_id INT IDENTITY(1,1) PRIMARY KEY,
+    employee_id INT NOT NULL,
+    timestamp DATETIME NOT NULL,
+    incident_type VARCHAR(255) NOT NULL,
+    resolution_status VARCHAR(255) NOT NULL,
+    FOREIGN KEY (employee_id) REFERENCES Employee_Data(employee_id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE Incident_Response (
+    incident_response_id INT IDENTITY(1,1) PRIMARY KEY,
+    incident_id INT NOT NULL,
+    response_start_time DATETIME NOT NULL,
+    response_end_time DATETIME NOT NULL,
+    FOREIGN KEY (incident_id) REFERENCES Security_Incidents(incident_id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE Detection_Method (
+    detection_method_id INT IDENTITY(1,1) PRIMARY KEY,
+    detection_method_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Detected_By (
+    detected_by_id INT IDENTITY(1,1) PRIMARY KEY,
+    detected_by_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Incident_Detection (
+    incident_detection_id INT IDENTITY(1,1) PRIMARY KEY,
+    incident_id INT NOT NULL,
+    detection_time DATETIME NOT NULL,
+    detection_method_id INT NOT NULL,
+    detected_by_id INT NOT NULL,
+    FOREIGN KEY (incident_id) REFERENCES Security_Incidents(incident_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (detection_method_id) REFERENCES Detection_Method(detection_method_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (detected_by_id) REFERENCES Detected_By(detected_by_id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+'''
+
+cursor.execute(Enter_All_Tables)
+
+show_tables_query = '''
+SELECT TABLE_SCHEMA, TABLE_NAME
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_TYPE = 'BASE TABLE';
+'''
+
+cursor.execute(show_tables_query)
+
+print("Tables in the database:")
+for row in cursor.fetchall():
+    print(f"{row.TABLE_SCHEMA}.{row.TABLE_NAME}")
+
+cursor.close()
+cnxn.close()
