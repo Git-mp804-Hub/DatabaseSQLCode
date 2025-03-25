@@ -1,4 +1,4 @@
-import pyodbc
+import pyodbc ### DONT COMMIT STUFF AGAIN, DELETE THE COMMIT() AT THE BOTTOM TO NOT DUPLICATE
 
 # Connection details
 server = 'tcp:mcruebs04.isad.isadroot.ex.ac.uk'
