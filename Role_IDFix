@@ -1,0 +1,120 @@
+import pyodbc
+
+server = 'tcp:mcruebs04.isad.isadroot.ex.ac.uk'
+database = 'BEMM459_GroupAC'
+username = 'GroupAC'
+password = 'NauX781*Ek'
+
+serverstring = ('DRIVER={SQL Server};SERVER='+server+';DATABASE='+database+';UID='+username+';PWD='+ password+';TrustServerCertificate=yes;Encrypt=no;')
+
+cnxn = pyodbc.connect(serverstring)
+cursor = cnxn.cursor()
+
+import random
+
+department_roles = {
+    'Finance': (1, 5),
+    'IT': (6, 10),
+    'HR': (11, 15),
+    'Cybersecurity': (16, 20),
+    'Operations': (21, 25)
+}
+
+cursor.execute("SELECT email, Department FROM Employee_Data")
+employees = cursor.fetchall()
+
+for email, department in employees:
+    if department in department_roles:
+        new_role_ID = random.randint(*department_roles[department])
+        cursor.execute("""
+            UPDATE Employee_Data 
+            SET role_ID = ? 
+            WHERE email = ?
+        """, (new_role_ID, email))
+        print(f"Updated {email} - {department} -> New Role ID: {new_role_ID}")
+
+cursor.execute("DELETE FROM Roles")
+print("Cleared old role data.")
+department_roles = {
+    'Finance': [
+        (1, 'Junior Accountant'), (2, 'Mid Accountant'), (3, 'Senior Accountant'),
+        (4, 'CFO'), (5, 'Finance Director')
+    ],
+    'IT': [
+        (6, 'Junior IT Analyst'), (7, 'Mid IT Analyst'), (8, 'Senior IT Analyst'),
+        (9, 'IT Manager'), (10, 'CTO')
+    ],
+    'HR': [
+        (11, 'Junior HR Manager'), (12, 'Mid HR Manager'), (13, 'Senior HR Manager'),
+        (14, 'HR Director'), (15, 'Chief HR Officer')
+    ],
+    'Cybersecurity': [
+        (16, 'Junior Cybersecurity Analyst'), (17, 'Mid Cybersecurity Analyst'),
+        (18, 'Senior Cybersecurity Analyst'), (19, 'Cybersecurity Manager'),
+        (20, 'Chief Security Officer')
+    ],
+    'Operations': [
+        (21, 'Junior Operations Analyst'), (22, 'Mid Operations Analyst'),
+        (23, 'Senior Operations Analyst'), (24, 'Operations Manager'),
+        (25, 'COO')
+    ]
+}
+
+cursor.execute("SET IDENTITY_INSERT Roles ON")
+
+for department, roles in department_roles.items():
+    for role_id, role_name in roles:
+        cursor.execute("""
+            INSERT INTO Roles (role_ID, role_name) 
+            VALUES (?, ?)
+        """, (role_id, role_name))
+        print(f"Inserted: Role ID {role_id} -> {role_name}")
+
+cursor.execute("SET IDENTITY_INSERT Roles OFF")
+
+cursor.execute("SELECT * FROM Employee_Data")
+
+rows = cursor.fetchall()
+for row in rows:
+    print(row)
+
+tables = [
+    "Employee_Data", "Roles", "Permissions", "Roles_Permissions",
+    "Protocol_Data", "Network_Usage", "Access_Type", "File_Data",
+    "File_Access", "Security_Incidents", "Incident_Response",
+    "Detection_Method", "Detected_By", "Incident_Detection"
+]
+
+empty_tables = []
+
+for table in tables:
+    try:
+        cursor.execute(f"SELECT COUNT(*) FROM {table}")
+        count = cursor.fetchone()[0]
+        if count == 0:
+            empty_tables.append(table)
+        print(f"Table '{table}' has {count} rows.")
+    except Exception as e:
+        print(f"Error checking table '{table}': {e}")
+
+if empty_tables:
+    print("\nThe following tables are empty:")
+    for table in empty_tables:
+        print(f"- {table}")
+else:
+    print("\nAll tables contain data.")
+
+query = """
+SELECT e.first_name, e.last_name, e.Department, r.role_name
+FROM Employee_Data e
+INNER JOIN Roles r ON e.role_ID = r.role_ID;
+"""
+
+cursor.execute(query)
+rows = cursor.fetchall()
+
+for row in rows:
+    print(row)
+
+cursor.close()
+cnxn.close()
