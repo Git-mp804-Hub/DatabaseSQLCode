@@ -1,0 +1,118 @@
+import pyodbc
+
+server = 'tcp:mcruebs04.isad.isadroot.ex.ac.uk'
+database = 'BEMM459_GroupAC'
+username = 'GroupAC'
+password = 'NauX781*Ek'
+
+serverstring = ('DRIVER={SQL Server};SERVER='+server+';DATABASE='+database+';UID='+username+';PWD='+ password+';TrustServerCertificate=yes;Encrypt=no;')
+
+cnxn = pyodbc.connect(serverstring)
+cursor = cnxn.cursor()
+
+permissions_for_employees = {
+    'Alice Johnson': [6, 5],  
+    'Amy Scott': [1, 2],  
+    'Ava Russell': [1, 2],  
+    'Blake Simmons': [1, 2],  
+    'Bob Smith': [1, 2],  
+    'Brian Green': [3, 4],  
+    'Cameron Barnes': [3, 4],  
+    'Charlie Brown': [3, 4], 
+    'Chloe Adams': [7, 8],  
+    'Daniel Baker': [7, 8],  
+    'David Wilson': [7, 8],  
+    'Diana Henderson': [7, 8],  
+    'Ella Gonzalez': [1, 2],  
+    'Emma Davis': [9, 10], 
+    'Ethan Coleman': [9, 10],  
+    'Finn Nelson': [9, 10],  
+    'Fiona Powell': [1, 2],  
+    'Frank Miller': [4, 3],  
+    'Gavin Jenkins': [1, 2], 
+    'George Carter': [3, 4],  
+    'Grace Moore': [1, 2],  
+    'Hailey Patterson': [3, 4], 
+    'Hannah Taylor': [3, 4], 
+    'Holly Mitchell': [7, 8],  
+    'Ian Perez': [9, 10],  
+    'Isaac Anderson': [7, 8],  
+    'Isaiah Hughes': [7, 8],  
+    'Jack Thomas': [9, 10],  
+    'Jane Roberts': [1, 2],  
+    'Kelly White': [1, 2],  
+    'Kevin Phillips': [9, 10],  
+    'Laura Evans': [3, 4],  
+    'Liam Harris': [9, 10],  
+    'Mason Edwards': [7, 8], 
+    'Mia Martin': [3, 4],  
+    'Natalie Collins': [9, 10],  
+    'Noah Thompson': [7, 8],  
+    'Olivia Garcia': [9, 10],  
+    'Oscar Stewart': [6, 5],  
+    'Paul Morris': [9, 10],  
+    'Peter Martinez': [1, 2],  
+    'Quinn Robinson': [9, 10],  
+    'Rebecca Nguyen': [3, 4],  
+    'Ryan Clark': [3, 4], 
+    'Samuel Murphy': [7, 8],  
+    'Sophia Rodriguez': [7, 8], 
+    'Tina Rivera': [9, 10],  
+    'Tyler Lewis': [9, 10], 
+    'Uma Lee': [1, 2],  
+    'Ursula Foster': [1, 2],  
+    'Victor Walker': [9, 10],  
+    'Vince Hayes': [1, 2],  
+    'Walter Perry': [3, 4],  
+    'Wendy Hall': [3, 4],  
+    'Xander Allen': [7, 8],  
+    'Xenia Long': [7, 8],  
+    'Yara Young': [9, 10],  
+    'Yasmine Bryant': [9, 10],  
+    'Zach King': [1, 2],  
+    'Zane Griffin': [1, 2]  
+}
+
+for employee, permissions in permissions_for_employees.items():
+    cursor.execute("SELECT e.employee_id, r.role_id FROM Employee_Data e JOIN Roles r ON e.role_ID = r.role_id WHERE e.first_name + ' ' + e.last_name = ?", (employee,))
+    result = cursor.fetchone()
+    if result:
+        employee_id, role_id = result
+        for permission_id in permissions:
+            cursor.execute("""
+                SELECT COUNT(*) FROM Roles_Permissions
+                WHERE role_id = ? AND permission_id = ?
+            """, (role_id, permission_id))
+            count = cursor.fetchone()[0]
+            if count == 0:
+                cursor.execute("""
+                    INSERT INTO Roles_Permissions (role_id, permission_id) 
+                    VALUES (?, ?)
+                """, (role_id, permission_id))
+                print(f"Inserted: Employee {employee}, Role ID {role_id}, Permission ID {permission_id}")
+            else:
+                print(f"Skipped: Employee {employee}, Role ID {role_id}, Permission ID {permission_id} (Already exists)")
+
+query = """
+SELECT e.first_name, e.last_name, r.role_name, COALESCE(p.permission_description, 'No permissions assigned') AS permission_description
+FROM Employee_Data e
+JOIN Roles r ON e.role_ID = r.role_id
+LEFT JOIN Roles_Permissions rp ON r.role_id = rp.role_id
+LEFT JOIN Permissions p ON rp.permission_id = p.permission_id
+ORDER BY e.first_name, e.last_name, r.role_name, permission_description;
+"""
+
+cursor.execute(query)
+
+rows = cursor.fetchall()
+
+if rows:
+    print("Roles and Permissions for Every Employee:")
+    for row in rows:
+        print(f"{row.first_name} {row.last_name} - {row.role_name}: {row.permission_description}")
+else:
+    print("No data found or no permissions assigned to employees.")
+
+
+cursor.close()
+cnxn.close()
