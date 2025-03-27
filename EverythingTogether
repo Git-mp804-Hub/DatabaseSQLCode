@@ -1,0 +1,1002 @@
+import pyodbc ### DONT COMMIT STUFF AGAIN, DELETE THE COMMIT() AT THE BOTTOM TO NOT DUPLICATE
+
+# Connection details
+server = 'tcp:mcruebs04.isad.isadroot.ex.ac.uk'
+database = 'BEMM459_GroupAC'
+username = 'GroupAC'
+password = 'NauX781*Ek'
+
+serverstring = ('DRIVER={SQL Server};SERVER='+server+';DATABASE='+database+';UID='+username+';PWD='+ password+';TrustServerCertificate=yes;Encrypt=no;')
+
+cnxn = pyodbc.connect(serverstring)
+cursor = cnxn.cursor()
+
+Enter_All_Tables = '''
+CREATE TABLE Employee_Data (
+    employee_id INT IDENTITY(1,1) PRIMARY KEY,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    Department VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    role_ID INT NOT NULL
+);
+
+CREATE TABLE Roles (
+    role_id INT IDENTITY(1,1) PRIMARY KEY,
+    role_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Permissions (
+    permission_id INT IDENTITY(1,1) PRIMARY KEY,
+    permission_description VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Roles_Permissions (
+    role_id INT NOT NULL,
+    permission_id INT NOT NULL,
+    PRIMARY KEY(role_id, permission_id),
+    FOREIGN KEY (role_id) REFERENCES Roles(role_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (permission_id) REFERENCES Permissions(permission_id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE Protocol_Data (
+    protocol_id INT PRIMARY KEY,
+    protocol_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Network_Usage (
+    network_usage_id INT IDENTITY(1,1) PRIMARY KEY,
+    employee_id INT NOT NULL,
+    timestamp DATETIME NOT NULL,
+    data_transfered_MB FLOAT NOT NULL,
+    protocol_id INT NOT NULL,
+    destination_ip VARCHAR(255) NOT NULL,
+    FOREIGN KEY (employee_id) REFERENCES Employee_Data(employee_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (protocol_id) REFERENCES Protocol_Data(protocol_id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE Access_Type (
+    access_type_id INT IDENTITY(1,1) PRIMARY KEY,
+    access_type_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE File_Data (
+    file_id INT IDENTITY(1,1) PRIMARY KEY,
+    file_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE File_Access (
+    access_id INT IDENTITY(1,1) PRIMARY KEY,
+    employee_id INT NOT NULL,
+    access_type_id INT NOT NULL,
+    timestamp DATETIME NOT NULL,
+    file_id INT NOT NULL,
+    FOREIGN KEY (employee_id) REFERENCES Employee_Data(employee_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (access_type_id) REFERENCES Access_Type(access_type_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (file_id) REFERENCES File_Data(file_id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE Security_Incidents (
+    incident_id INT IDENTITY(1,1) PRIMARY KEY,
+    employee_id INT NOT NULL,
+    timestamp DATETIME NOT NULL,
+    incident_type VARCHAR(255) NOT NULL,
+    resolution_status VARCHAR(255) NOT NULL,
+    FOREIGN KEY (employee_id) REFERENCES Employee_Data(employee_id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE Incident_Response (
+    incident_response_id INT IDENTITY(1,1) PRIMARY KEY,
+    incident_id INT NOT NULL,
+    response_start_time DATETIME NOT NULL,
+    response_end_time DATETIME NOT NULL,
+    FOREIGN KEY (incident_id) REFERENCES Security_Incidents(incident_id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE Detection_Method (
+    detection_method_id INT IDENTITY(1,1) PRIMARY KEY,
+    detection_method_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Detected_By (
+    detected_by_id INT IDENTITY(1,1) PRIMARY KEY,
+    detected_by_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE Incident_Detection (
+    incident_detection_id INT IDENTITY(1,1) PRIMARY KEY,
+    incident_id INT NOT NULL,
+    detection_time DATETIME NOT NULL,
+    detection_method_id INT NOT NULL,
+    detected_by_id INT NOT NULL,
+    FOREIGN KEY (incident_id) REFERENCES Security_Incidents(incident_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (detection_method_id) REFERENCES Detection_Method(detection_method_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (detected_by_id) REFERENCES Detected_By(detected_by_id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+'''
+
+cursor.execute(Enter_All_Tables)
+
+EmpNames = '''
+INSERT INTO Employee_Data (first_name, last_name, Department, email, role_ID) VALUES
+('Alice', 'Johnson', 'Finance', 'alice.johnson@bank.com', 1),
+('Bob', 'Smith', 'IT', 'bob.smith@bank.com', 2),
+('Charlie', 'Brown', 'HR', 'charlie.brown@bank.com', 3),
+('David', 'Wilson', 'Cybersecurity', 'david.wilson@bank.com', 4),
+('Emma', 'Davis', 'Operations', 'emma.davis@bank.com', 5),
+('Frank', 'Miller', 'Finance', 'frank.miller@bank.com', 1),
+('Grace', 'Moore', 'IT', 'grace.moore@bank.com', 2),
+('Hannah', 'Taylor', 'HR', 'hannah.taylor@bank.com', 3),
+('Isaac', 'Anderson', 'Cybersecurity', 'isaac.anderson@bank.com', 4),
+('Jack', 'Thomas', 'Operations', 'jack.thomas@bank.com', 5),
+('Kelly', 'White', 'Finance', 'kelly.white@bank.com', 1),
+('Liam', 'Harris', 'IT', 'liam.harris@bank.com', 2),
+('Mia', 'Martin', 'HR', 'mia.martin@bank.com', 3),
+('Noah', 'Thompson', 'Cybersecurity', 'noah.thompson@bank.com', 4),
+('Olivia', 'Garcia', 'Operations', 'olivia.garcia@bank.com', 5),
+('Peter', 'Martinez', 'Finance', 'peter.martinez@bank.com', 1),
+('Quinn', 'Robinson', 'IT', 'quinn.robinson@bank.com', 2),
+('Ryan', 'Clark', 'HR', 'ryan.clark@bank.com', 3),
+('Sophia', 'Rodriguez', 'Cybersecurity', 'sophia.rodriguez@bank.com', 4),
+('Tyler', 'Lewis', 'Operations', 'tyler.lewis@bank.com', 5),
+('Uma', 'Lee', 'Finance', 'uma.lee@bank.com', 1),
+('Victor', 'Walker', 'IT', 'victor.walker@bank.com', 2),
+('Wendy', 'Hall', 'HR', 'wendy.hall@bank.com', 3),
+('Xander', 'Allen', 'Cybersecurity', 'xander.allen@bank.com', 4),
+('Yara', 'Young', 'Operations', 'yara.young@bank.com', 5),
+('Zach', 'King', 'Finance', 'zach.king@bank.com', 1),
+('Amy', 'Scott', 'IT', 'amy.scott@bank.com', 2),
+('Brian', 'Green', 'HR', 'brian.green@bank.com', 3),
+('Chloe', 'Adams', 'Cybersecurity', 'chloe.adams@bank.com', 4),
+('Daniel', 'Baker', 'Operations', 'daniel.baker@bank.com', 5),
+('Ella', 'Gonzalez', 'Finance', 'ella.gonzalez@bank.com', 1),
+('Finn', 'Nelson', 'IT', 'finn.nelson@bank.com', 2),
+('George', 'Carter', 'HR', 'george.carter@bank.com', 3),
+('Holly', 'Mitchell', 'Cybersecurity', 'holly.mitchell@bank.com', 4),
+('Ian', 'Perez', 'Operations', 'ian.perez@bank.com', 5),
+('Jane', 'Roberts', 'Finance', 'jane.roberts@bank.com', 1),
+('Kevin', 'Phillips', 'IT', 'kevin.phillips@bank.com', 2),
+('Laura', 'Evans', 'HR', 'laura.evans@bank.com', 3),
+('Mason', 'Edwards', 'Cybersecurity', 'mason.edwards@bank.com', 4),
+('Natalie', 'Collins', 'Operations', 'natalie.collins@bank.com', 5),
+('Oscar', 'Stewart', 'Finance', 'oscar.stewart@bank.com', 1),
+('Paul', 'Morris', 'IT', 'paul.morris@bank.com', 2),
+('Rebecca', 'Nguyen', 'HR', 'rebecca.nguyen@bank.com', 3),
+('Samuel', 'Murphy', 'Cybersecurity', 'samuel.murphy@bank.com', 4),
+('Tina', 'Rivera', 'Operations', 'tina.rivera@bank.com', 5),
+('Ursula', 'Foster', 'Finance', 'ursula.foster@bank.com', 1),
+('Vince', 'Hayes', 'IT', 'vince.hayes@bank.com', 2),
+('Walter', 'Perry', 'HR', 'walter.perry@bank.com', 3),
+('Xenia', 'Long', 'Cybersecurity', 'xenia.long@bank.com', 4),
+('Yasmine', 'Bryant', 'Operations', 'yasmine.bryant@bank.com', 5),
+('Zane', 'Griffin', 'Finance', 'zane.griffin@bank.com', 1),
+('Ava', 'Russell', 'Finance', 'ava.russell@bank.com', 1),
+('Blake', 'Simmons', 'IT', 'blake.simmons@bank.com', 2),
+('Cameron', 'Barnes', 'HR', 'cameron.barnes@bank.com', 3),
+('Diana', 'Henderson', 'Cybersecurity', 'diana.henderson@bank.com', 4),
+('Ethan', 'Coleman', 'Operations', 'ethan.coleman@bank.com', 5),
+('Fiona', 'Powell', 'Finance', 'fiona.powell@bank.com', 1),
+('Gavin', 'Jenkins', 'IT', 'gavin.jenkins@bank.com', 2),
+('Hailey', 'Patterson', 'HR', 'hailey.patterson@bank.com', 3),
+('Isaiah', 'Hughes', 'Cybersecurity', 'isaiah.hughes@bank.com', 4);
+'''
+cursor.execute(EmpNames)
+
+protocoldata = '''
+INSERT INTO Protocol_Data (protocol_id, protocol_name) VALUES
+(1, 'HTTP'),
+(2, 'FTP'),
+(3, 'SSH'),
+(4, 'DNS');
+'''
+
+cursor.execute(protocoldata)
+
+NetworkInfo = '''
+INSERT INTO Network_Usage (employee_id, timestamp, data_transfered_MB, protocol_id, destination_ip)
+VALUES
+(32, '2024-03-24 08:15:23', 45.6, 1, '192.168.1.10'),
+(12, '2024-03-24 09:20:11', 12.3, 2, '10.0.0.5'),
+(45, '2024-03-24 10:05:45', 78.9, 3, '172.16.0.2'),
+(21, '2024-03-24 11:12:32', 23.1, 1, '192.168.1.15'),
+(9, '2024-03-24 12:40:21', 56.7, 4, '10.0.0.8'),
+(56, '2024-03-24 13:55:10', 98.2, 2, '172.16.1.3'),
+(7, '2024-03-24 14:22:18', 34.5, 3, '192.168.2.20'),
+(48, '2024-03-24 15:30:25', 87.4, 1, '10.0.1.15'),
+(19, '2024-03-24 16:45:33', 14.2, 4, '172.16.2.4'),
+(29, '2024-03-24 17:50:40', 61.5, 2, '192.168.3.11'),
+(22, '2024-03-24 18:33:28', 39.7, 1, '10.0.2.6'),
+(5, '2024-03-24 19:10:49', 73.9, 3, '172.16.3.7'),
+(41, '2024-03-24 20:15:52', 29.4, 4, '192.168.4.18'),
+(36, '2024-03-24 21:40:35', 51.2, 2, '10.0.3.9'),
+(58, '2024-03-24 22:55:11', 89.6, 1, '172.16.4.2'),
+(14, '2024-03-24 23:30:29', 10.8, 3, '192.168.5.13'),
+(33, '2024-03-25 00:45:56', 92.1, 4, '10.0.4.20'),
+(8, '2024-03-25 01:10:47', 37.3, 2, '172.16.5.9'),
+(25, '2024-03-25 02:25:22', 58.6, 1, '192.168.6.7'),
+(11, '2024-03-25 03:50:13', 41.9, 3, '10.0.5.3'),
+(50, '2024-03-25 04:15:36', 67.5, 4, '172.16.6.15'),
+(4, '2024-03-25 05:30:41', 83.7, 2, '192.168.7.10'),
+(39, '2024-03-25 06:40:58', 19.4, 1, '10.0.6.12'),
+(26, '2024-03-25 07:55:49', 44.6, 3, '172.16.7.8'),
+(53, '2024-03-25 08:20:53', 78.3, 4, '192.168.8.6'),
+(60, '2024-03-25 09:30:15', 23.9, 2, '10.0.7.5'),
+(16, '2024-03-25 10:45:33', 52.8, 1, '172.16.8.10'),
+(31, '2024-03-25 11:10:27', 61.4, 3, '192.168.9.20'),
+(3, '2024-03-25 12:20:59', 95.2, 4, '10.0.8.17'),
+(27, '2024-03-25 13:30:35', 38.1, 2, '172.16.9.11'),
+(46, '2024-03-25 14:45:45', 72.5, 1, '192.168.10.9'),
+(55, '2024-03-25 15:50:51', 20.7, 3, '10.0.9.4'),
+(2, '2024-03-25 16:40:15', 87.9, 4, '172.16.10.3'),
+(44, '2024-03-25 17:10:29', 47.6, 2, '192.168.11.8'),
+(10, '2024-03-25 18:25:57', 56.2, 1, '10.0.10.6'),
+(35, '2024-03-25 19:45:12', 14.9, 3, '172.16.11.5'),
+(42, '2024-03-25 20:55:23', 92.3, 4, '192.168.12.7'),
+(1, '2024-03-25 21:30:48', 33.5, 2, '10.0.11.20'),
+(57, '2024-03-25 22:45:55', 71.6, 1, '172.16.12.13'),
+(28, '2024-03-25 23:10:33', 60.9, 3, '192.168.13.14'),
+(23, '2024-03-26 00:40:11', 49.2, 4, '10.0.12.3'),
+(47, '2024-03-26 01:50:27', 78.8, 2, '172.16.13.12'),
+(30, '2024-03-26 02:15:38', 37.1, 1, '192.168.14.15'),
+(18, '2024-03-26 03:30:54', 98.4, 3, '10.0.13.8'),
+(13, '2024-03-26 04:10:29', 29.5, 4, '172.16.14.11'),
+(34, '2024-03-26 05:25:43', 51.7, 2, '192.168.15.9'),
+(54, '2024-03-26 06:40:10', 80.1, 1, '10.0.14.7'),
+(20, '2024-03-26 07:50:20', 66.3, 3, '172.16.15.10'),
+(15, '2024-03-26 08:15:49', 23.7, 4, '192.168.16.4'),
+(6, '2024-03-26 09:30:58', 90.9, 2, '10.0.15.18'),
+(17, '2024-03-26 10:05:23', 55.2, 1, '192.168.17.10'),
+(38, '2024-03-26 11:20:35', 12.7, 2, '10.0.16.15'),
+(24, '2024-03-26 12:45:12', 78.3, 3, '172.16.17.6'),
+(43, '2024-03-26 13:30:41', 42.1, 4, '192.168.18.14'),
+(59, '2024-03-26 14:50:59', 97.6, 1, '10.0.17.5'),
+(9, '2024-03-26 15:35:27', 34.2, 2, '172.16.18.9'),
+(12, '2024-03-26 16:10:48', 66.7, 3, '192.168.19.7'),
+(27, '2024-03-26 17:25:13', 22.5, 4, '10.0.18.12'),
+(46, '2024-03-26 18:40:22', 81.4, 1, '172.16.19.4'),
+(3, '2024-03-26 19:10:38', 47.3, 2, '192.168.20.8'),
+(35, '2024-03-26 20:55:44', 59.9, 3, '10.0.19.10'),
+(14, '2024-03-26 21:30:57', 92.5, 4, '172.16.20.15'),
+(55, '2024-03-26 22:40:21', 39.2, 1, '192.168.21.3'),
+(11, '2024-03-26 23:10:59', 78.7, 2, '10.0.20.9'),
+(48, '2024-03-27 00:25:34', 28.6, 3, '172.16.21.14'),
+(5, '2024-03-27 01:45:17', 50.1, 4, '192.168.22.5'),
+(60, '2024-03-27 02:15:49', 64.2, 1, '10.0.21.17'),
+(21, '2024-03-27 03:30:56', 97.3, 2, '172.16.22.8'),
+(2, '2024-03-27 04:10:27', 14.5, 3, '192.168.23.6'),
+(29, '2024-03-27 05:55:13', 42.8, 4, '10.0.22.3'),
+(33, '2024-03-27 06:40:41', 76.1, 1, '172.16.23.11'),
+(50, '2024-03-27 07:20:35', 54.9, 2, '192.168.24.10'),
+(37, '2024-03-27 08:35:44', 89.7, 3, '10.0.23.7'),
+(13, '2024-03-27 09:55:58', 19.3, 4, '172.16.24.12'),
+(41, '2024-03-27 10:45:39', 85.2, 1, '192.168.25.9'),
+(19, '2024-03-27 11:30:47', 31.7, 2, '10.0.24.5'),
+(45, '2024-03-27 12:55:23', 60.4, 3, '172.16.25.8'),
+(7, '2024-03-27 13:40:33', 98.9, 4, '192.168.26.6'),
+(30, '2024-03-27 14:20:56', 44.3, 1, '10.0.25.4'),
+(56, '2024-03-27 15:10:29', 71.1, 2, '172.16.26.14'),
+(8, '2024-03-27 16:40:15', 20.8, 3, '192.168.27.11'),
+(54, '2024-03-27 17:25:31', 88.2, 4, '10.0.26.3'),
+(31, '2024-03-27 18:50:48', 35.6, 1, '172.16.27.9'),
+(23, '2024-03-27 19:30:59', 53.2, 2, '192.168.28.7'),
+(16, '2024-03-27 20:10:45', 76.5, 3, '10.0.27.5'),
+(52, '2024-03-27 21:45:23', 90.3, 4, '172.16.28.10'),
+(4, '2024-03-27 22:20:57', 41.9, 1, '192.168.29.8'),
+(39, '2024-03-27 23:40:12', 68.1, 2, '10.0.28.9'),
+(25, '2024-03-28 00:30:44', 82.7, 3, '172.16.29.11'),
+(44, '2024-03-28 12:32:22', 12.7, 3, '192.168.11.8');
+'''
+
+cursor.execute(NetworkInfo)
+
+RoleInput = '''
+INSERT INTO Roles (role_name) VALUES 
+('Finance'),
+('IT'),
+('HR'),
+('Cybersecurity'),
+('Operations');
+'''
+
+cursor.execute(RoleInput)
+
+PermInput = '''
+INSERT INTO Permissions (permission_description) VALUES 
+('View Reports'),
+('Edit Reports'),
+('Manage Users'),
+('Access Financial Data'),
+('Modify IT Infrastructure'),
+('Manage HR Records'),
+('Access Cybersecurity Systems'),
+('Monitor Security Alerts'),
+('Process Operations Requests'),
+('Approve Operational Changes');
+'''
+
+cursor.execute(PermInput)
+
+RolePermInput = '''
+INSERT INTO Roles_Permissions (role_id, permission_id) VALUES 
+-- Finance
+(1, 1), -- View Reports
+(1, 4), -- Access Financial Data
+
+-- IT
+(2, 5), -- Modify IT Infrastructure
+(2, 8), -- Monitor Security Alerts
+
+-- HR
+(3, 3), -- Manage Users
+(3, 6), -- Manage HR Records
+
+-- Cybersecurity
+(4, 7), -- Access Cybersecurity Systems
+(4, 8), -- Monitor Security Alerts
+
+-- Operations
+(5, 9), -- Process Operations Requests
+(5, 10); -- Approve Operational Changes
+'''
+
+cursor.execute(PermInput)
+
+SecurtyInput = '''
+INSERT INTO Security_Incidents (employee_id, timestamp, incident_type, resolution_status) VALUES 
+(5, '2024-03-25 08:20:53', 'Unauthorized Access', 'Resolved'),
+(12, '2024-03-28 12:32:20', 'Malware Infection', 'In Progress'),
+(21, '2024-03-27 14:20:56', 'Phishing Attack', 'Resolved'),
+(8, '2024-03-27 10:45:39', 'Data Breach', 'Resolved'),
+(36, '2024-03-27 04:10:27', 'Password Compromise', 'In Progress'),
+(40, '2024-03-26 07:50:20', 'Insider Threat', 'Resolved'),
+(27, '2024-03-26 11:20:35', 'System Outage', 'In Progress'),
+(2, '2024-03-26 14:50:59', 'Denial of Service', 'Resolved'),
+(13, '2024-03-26 15:35:27', 'Unauthorized Access', 'Resolved'),
+(18, '2024-03-26 18:40:22', 'Malware Infection', 'In Progress'),
+(9, '2024-03-25 01:10:47', 'Phishing Attack', 'Resolved'),
+(34, '2024-03-24 08:15:23', 'Data Breach', 'Resolved'),
+(16, '2024-03-24 09:20:11', 'Password Compromise', 'In Progress'),
+(48, '2024-03-24 10:05:45', 'Insider Threat', 'Resolved'),
+(26, '2024-03-24 11:12:32', 'System Outage', 'In Progress'),
+(1, '2024-03-24 12:40:21', 'Denial of Service', 'Resolved'),
+(11, '2024-03-24 13:55:10', 'Unauthorized Access', 'Resolved'),
+(3, '2024-03-24 14:22:18', 'Malware Infection', 'In Progress'),
+(7, '2024-03-24 15:30:25', 'Phishing Attack', 'Resolved'),
+(31, '2024-03-24 16:45:33', 'Data Breach', 'Resolved'),
+(22, '2024-03-24 17:50:40', 'Password Compromise', 'In Progress'),
+(41, '2024-03-24 18:33:28', 'Insider Threat', 'Resolved'),
+(30, '2024-03-24 19:10:49', 'System Outage', 'In Progress'),
+(28, '2024-03-24 20:15:52', 'Denial of Service', 'Resolved'),
+(14, '2024-03-24 21:40:35', 'Unauthorized Access', 'Resolved'),
+(35, '2024-03-24 22:55:11', 'Malware Infection', 'In Progress'),
+(50, '2024-03-25 00:45:56', 'Phishing Attack', 'Resolved'),
+(47, '2024-03-25 01:10:47', 'Data Breach', 'Resolved'),
+(33, '2024-03-25 02:25:22', 'Password Compromise', 'In Progress'),
+(20, '2024-03-25 03:50:13', 'Insider Threat', 'Resolved'),
+(56, '2024-03-25 04:15:36', 'System Outage', 'In Progress');
+'''
+
+cursor.execute(SecurtyInput)
+
+detectedby = '''
+INSERT INTO Detected_By (detected_by_name) VALUES
+('Security Team'),
+('Automated System'),
+('End User'),
+('Firewall System');
+'''
+
+cursor.execute(detectedby)
+
+detectionmethod = '''
+INSERT INTO Detection_Method (detection_method_name) VALUES
+('Automated Monitoring'),
+('Intrusion Detection System'),
+('User Report'),
+('Firewall Alert');
+'''
+
+cursor.execute(detectionmethod)
+
+incidentDetect = '''
+INSERT INTO Incident_Detection (incident_id, detection_time, detection_method_id, detected_by_id) VALUES
+(1, '2024-03-25 08:20:53', 1, 1),  -- Incident 1, Detection Method: Automated Monitoring, Detected By: Security Team
+(2, '2024-03-28 12:32:20', 2, 2),  -- Incident 2, Detection Method: Intrusion Detection System, Detected By: Automated System
+(3, '2024-03-27 14:20:56', 3, 3),  -- Incident 3, Detection Method: User Report, Detected By: End User
+(4, '2024-03-27 10:45:39', 4, 4),  -- Incident 4, Detection Method: Firewall Alert, Detected By: Firewall System
+(5, '2024-03-27 04:10:27', 1, 1),  -- Incident 5, Detection Method: Automated Monitoring, Detected By: Security Team
+(6, '2024-03-26 07:50:20', 2, 2),  -- Incident 6, Detection Method: Intrusion Detection System, Detected By: Automated System
+(7, '2024-03-26 11:20:35', 3, 3),  -- Incident 7, Detection Method: User Report, Detected By: End User
+(8, '2024-03-26 14:50:59', 4, 4),  -- Incident 8, Detection Method: Firewall Alert, Detected By: Firewall System
+(9, '2024-03-26 15:35:27', 1, 1),  -- Incident 9, Detection Method: Automated Monitoring, Detected By: Security Team
+(10, '2024-03-26 18:40:22', 2, 2), -- Incident 10, Detection Method: Intrusion Detection System, Detected By: Automated System
+(11, '2024-03-25 01:10:47', 3, 3), -- Incident 11, Detection Method: User Report, Detected By: End User
+(12, '2024-03-24 08:15:23', 4, 4), -- Incident 12, Detection Method: Firewall Alert, Detected By: Firewall System
+(13, '2024-03-24 09:20:11', 1, 1), -- Incident 13, Detection Method: Automated Monitoring, Detected By: Security Team
+(14, '2024-03-24 10:05:45', 2, 2), -- Incident 14, Detection Method: Intrusion Detection System, Detected By: Automated System
+(15, '2024-03-24 11:12:32', 3, 3), -- Incident 15, Detection Method: User Report, Detected By: End User
+(16, '2024-03-24 12:40:21', 4, 4), -- Incident 16, Detection Method: Firewall Alert, Detected By: Firewall System
+(17, '2024-03-24 13:55:10', 1, 1), -- Incident 17, Detection Method: Automated Monitoring, Detected By: Security Team
+(18, '2024-03-24 14:22:18', 2, 2), -- Incident 18, Detection Method: Intrusion Detection System, Detected By: Automated System
+(19, '2024-03-24 15:30:25', 3, 3), -- Incident 19, Detection Method: User Report, Detected By: End User
+(20, '2024-03-24 16:45:33', 4, 4), -- Incident 20, Detection Method: Firewall Alert, Detected By: Firewall System
+(21, '2024-03-24 17:50:40', 1, 1), -- Incident 21, Detection Method: Automated Monitoring, Detected By: Security Team
+(22, '2024-03-24 18:33:28', 2, 2), -- Incident 22, Detection Method: Intrusion Detection System, Detected By: Automated System
+(23, '2024-03-24 19:10:49', 3, 3), -- Incident 23, Detection Method: User Report, Detected By: End User
+(24, '2024-03-24 20:15:52', 4, 4), -- Incident 24, Detection Method: Firewall Alert, Detected By: Firewall System
+(25, '2024-03-24 21:40:35', 1, 1), -- Incident 25, Detection Method: Automated Monitoring, Detected By: Security Team
+(26, '2024-03-24 22:55:11', 2, 2), -- Incident 26, Detection Method: Intrusion Detection System, Detected By: Automated System
+(27, '2024-03-25 00:45:56', 3, 3), -- Incident 27, Detection Method: User Report, Detected By: End User
+(28, '2024-03-25 01:10:47', 4, 4), -- Incident 28, Detection Method: Firewall Alert, Detected By: Firewall System
+(29, '2024-03-25 02:25:22', 1, 1), -- Incident 29, Detection Method: Automated Monitoring, Detected By: Security Team
+(30, '2024-03-25 03:50:13', 2, 2), -- Incident 30, Detection Method: Intrusion Detection System, Detected By: Automated System
+(31, '2024-03-25 04:15:36', 3, 3); -- Incident 31, Detection Method: User Report, Detected By: End User
+'''
+
+
+cursor.execute(incidentDetect)
+
+
+incidentresponse = '''
+INSERT INTO Incident_Response (incident_id, response_start_time, response_end_time) VALUES
+(1, '2024-03-25 08:30:00', '2024-03-25 09:00:00'),  -- Incident 1, Response Start: 08:30 AM, Response End: 09:00 AM
+(2, '2024-03-28 12:45:00', '2024-03-28 13:30:00'),  -- Incident 2, Response Start: 12:45 PM, Response End: 01:30 PM
+(3, '2024-03-27 14:30:00', '2024-03-27 15:00:00'),  -- Incident 3, Response Start: 02:30 PM, Response End: 03:00 PM
+(4, '2024-03-27 10:50:00', '2024-03-27 11:20:00'),  -- Incident 4, Response Start: 10:50 AM, Response End: 11:20 AM
+(5, '2024-03-27 04:15:00', '2024-03-27 04:45:00'),  -- Incident 5, Response Start: 04:15 AM, Response End: 04:45 AM
+(6, '2024-03-26 08:00:00', '2024-03-26 08:30:00'),  -- Incident 6, Response Start: 08:00 AM, Response End: 08:30 AM
+(7, '2024-03-26 11:40:00', '2024-03-26 12:10:00'),  -- Incident 7, Response Start: 11:40 AM, Response End: 12:10 PM
+(8, '2024-03-26 15:00:00', '2024-03-26 15:30:00'),  -- Incident 8, Response Start: 03:00 PM, Response End: 03:30 PM
+(9, '2024-03-26 15:50:00', '2024-03-26 16:20:00'),  -- Incident 9, Response Start: 03:50 PM, Response End: 04:20 PM
+(10, '2024-03-26 18:45:00', '2024-03-26 19:15:00'), -- Incident 10, Response Start: 06:45 PM, Response End: 07:15 PM
+(11, '2024-03-25 01:15:00', '2024-03-25 01:45:00'), -- Incident 11, Response Start: 01:15 AM, Response End: 01:45 AM
+(12, '2024-03-24 08:30:00', '2024-03-24 09:00:00'), -- Incident 12, Response Start: 08:30 AM, Response End: 09:00 AM
+(13, '2024-03-24 09:30:00', '2024-03-24 10:00:00'), -- Incident 13, Response Start: 09:30 AM, Response End: 10:00 AM
+(14, '2024-03-24 10:15:00', '2024-03-24 10:45:00'), -- Incident 14, Response Start: 10:15 AM, Response End: 10:45 AM
+(15, '2024-03-24 11:30:00', '2024-03-24 12:00:00'), -- Incident 15, Response Start: 11:30 AM, Response End: 12:00 PM
+(16, '2024-03-24 12:50:00', '2024-03-24 13:20:00'), -- Incident 16, Response Start: 12:50 PM, Response End: 01:20 PM
+(17, '2024-03-24 13:55:00', '2024-03-24 14:25:00'), -- Incident 17, Response Start: 01:55 PM, Response End: 02:25 PM
+(18, '2024-03-24 14:30:00', '2024-03-24 15:00:00'), -- Incident 18, Response Start: 02:30 PM, Response End: 03:00 PM
+(19, '2024-03-24 15:35:00', '2024-03-24 16:05:00'), -- Incident 19, Response Start: 03:35 PM, Response End: 04:05 PM
+(20, '2024-03-24 16:50:00', '2024-03-24 17:20:00'), -- Incident 20, Response Start: 04:50 PM, Response End: 05:20 PM
+(21, '2024-03-24 17:55:00', '2024-03-24 18:25:00'), -- Incident 21, Response Start: 05:55 PM, Response End: 06:25 PM
+(22, '2024-03-24 18:45:00', '2024-03-24 19:15:00'), -- Incident 22, Response Start: 06:45 PM, Response End: 07:15 PM
+(23, '2024-03-24 19:25:00', '2024-03-24 19:55:00'), -- Incident 23, Response Start: 07:25 PM, Response End: 07:55 PM
+(24, '2024-03-24 20:20:00', '2024-03-24 20:50:00'), -- Incident 24, Response Start: 08:20 PM, Response End: 08:50 PM
+(25, '2024-03-24 21:45:00', '2024-03-24 22:15:00'), -- Incident 25, Response Start: 09:45 PM, Response End: 10:15 PM
+(26, '2024-03-24 22:30:00', '2024-03-24 23:00:00'), -- Incident 26, Response Start: 10:30 PM, Response End: 11:00 PM
+(27, '2024-03-25 00:50:00', '2024-03-25 01:20:00'), -- Incident 27, Response Start: 12:50 AM, Response End: 01:20 AM
+(28, '2024-03-25 01:15:00', '2024-03-25 01:45:00'), -- Incident 28, Response Start: 01:15 AM, Response End: 01:45 AM
+(29, '2024-03-25 02:30:00', '2024-03-25 03:00:00'), -- Incident 29, Response Start: 02:30 AM, Response End: 03:00 AM
+(30, '2024-03-25 03:55:00', '2024-03-25 04:25:00'), -- Incident 30, Response Start: 03:55 AM, Response End: 04:25 AM
+(31, '2024-03-25 04:20:00', '2024-03-25 04:50:00'); -- Incident 31, Response Start: 04:20 AM, Response End: 04:50 AM
+'''
+
+cursor.execute(incidentresponse)
+
+FileAccess = '''
+INSERT INTO Access_Type (access_type_name) VALUES
+('Read'),
+('Write'),
+('Execute'),
+('Modify'),
+('Delete'),
+('Create'),
+('View'),
+('Download'),
+('Upload'),
+('Share');
+'''
+
+cursor.execute(FileAccess)
+
+FileName = '''
+INSERT INTO File_Data (file_name) VALUES
+('Sales_Report_2024_Q1.xlsx'),
+('Employee_Records_2024.xlsx'),
+('Inventory_List_2024.csv'),
+('Customer_Data_2024.json'),
+('Product_Catalog_2024.xlsx'),
+('Marketing_Strategy_2024.docx'),
+('Vendor_Contacts_2024.xlsx'),
+('Budget_Overview_2024.xlsx'),
+('Project_Plans_2024.pdf'),
+('Quarterly_Review_2024.docx'),
+('Payroll_Data_2024.csv'),
+('Customer_Support_Records_2024.xlsx'),
+('IT_Assets_2024.csv'),
+('Employee_Performance_2024.xlsx'),
+('Sales_Projections_2024.xlsx'),
+('Legal_Documents_2024.pdf'),
+('HR_Policies_2024.docx'),
+('Procurement_Contracts_2024.xlsx'),
+('Monthly_Reports_2024.csv'),
+('Annual_Sales_Review_2024.pdf'),
+('Training_Materials_2024.pdf'),
+('Client_Invoices_2024.xlsx'),
+('Expense_Reports_2024.csv'),
+('Supplier_Information_2024.xlsx'),
+('Company_Policies_2024.docx'),
+('Contract_Agreements_2024.pdf'),
+('Employee_Training_Records_2024.xlsx'),
+('IT_Security_Protocols_2024.pdf'),
+('Marketing_Budgets_2024.xlsx'),
+('Product_Inventory_2024.csv'),
+('Sales_Transactions_2024.xlsx'),
+('Shipping_Logs_2024.xlsx'),
+('Meeting_Minutes_2024.docx'),
+('Customer_Emails_2024.csv'),
+('Product_Price_List_2024.xlsx'),
+('Operations_Guide_2024.pdf'),
+('Annual_Financial_Report_2024.xlsx'),
+('Business_Continuity_Plan_2024.docx'),
+('Customer_Satisfaction_Surveys_2024.xlsx'),
+('Compliance_Reports_2024.pdf'),
+('Employee_Satisfaction_Surveys_2024.xlsx'),
+('IT_Support_Tickets_2024.csv'),
+('Supplier_Contracts_2024.pdf'),
+('Project_Budgets_2024.xlsx'),
+('Office_Supplies_2024.csv'),
+('Legal_Cases_2024.pdf'),
+('Sales_Targets_2024.xlsx'),
+('R&D_Reports_2024.docx'),
+('Employee_Directory_2024.xlsx'),
+('Customer_Feedback_2024.csv'),
+('Product_Returns_2024.xlsx'),
+('Profit_Analysis_2024.pdf'),
+('Business_Proposals_2024.docx'),
+('Client_Communication_2024.xlsx'),
+('Annual_Security_Report_2024.pdf'),
+('Client_Agreements_2024.docx'),
+('Tax_Records_2024.xlsx'),
+('Company_Structure_2024.pdf'),
+('Stock_Reports_2024.xlsx'),
+('Marketing_Campaigns_2024.docx'),
+('Employee_Vacation_Records_2024.xlsx'),
+('Product_Development_2024.pdf'),
+('R&D_Funding_Reports_2024.xlsx'),
+('Legal_Compliance_2024.pdf'),
+('IT_Maintenance_Logs_2024.xlsx'),
+('Customer_Contract_2024.pdf'),
+('Sales_Pipeline_2024.xlsx'),
+('Product_Specifications_2024.docx'),
+('Employee_Contracts_2024.pdf'),
+('Supplier_Payments_2024.csv'),
+('Corporate_Restructuring_2024.pdf'),
+('Client_Database_2024.xlsx'),
+('Quarterly_Financial_Reports_2024.pdf'),
+('Marketing_Assets_2024.xlsx'),
+('Employee_Grievance_Reports_2024.pdf'),
+('Invoice_Summary_2024.csv'),
+('Product_Development_Plans_2024.docx'),
+('Corporate_Strategy_2024.xlsx'),
+('Supplier_Evaluations_2024.xlsx'),
+('Employee_Work_Schedules_2024.xlsx'),
+('Sales_Target_Tracking_2024.xlsx'),
+('Product_Usage_Statistics_2024.csv'),
+('Workforce_Planning_2024.xlsx'),
+('Product_Launch_Plan_2024.pdf'),
+('Client_Feedback_Summary_2024.xlsx'),
+('Financial_Projection_2024.xlsx'),
+('Employee_Onboarding_Records_2024.pdf'),
+('Marketing_Analytics_2024.xlsx'),
+('Annual_Budget_2024.xlsx'),
+('Annual_Tax_Reports_2024.pdf'),
+('HR_Reports_2024.xlsx'),
+('Stock_Purchasing_2024.xlsx'),
+('Client_Proposal_2024.pdf'),
+('Business_Analysts_2024.xlsx'),
+('Sales_Reports_2024.pdf'),
+('Customer_Calls_2024.csv'),
+('Product_Supplier_Records_2024.xlsx'),
+('Supplier_Performance_2024.xlsx'),
+('Employee_Exit_Interviews_2024.xlsx'),
+('Employee_Retirement_Records_2024.pdf'),
+('Sales_Training_Materials_2024.docx'),
+('Product_Recall_Records_2024.xlsx'),
+('Financial_Transactions_2024.xlsx'),
+('Service_Level_Agreements_2024.docx'),
+('Employee_Work_Logs_2024.xlsx'),
+('Legal_Litigation_Reports_2024.xlsx'),
+('Marketing_Material_Review_2024.pdf'),
+('Sales_Campaign_Results_2024.xlsx'),
+('Customer_Order_Summary_2024.csv'),
+('Product_Evaluation_2024.xlsx'),
+('Employee_Salary_Records_2024.csv'),
+('IT_Projects_2024.xlsx'),
+('Customer_Orders_2024.xlsx'),
+('Corporate_Assets_2024.pdf'),
+('Training_Course_Materials_2024.xlsx'),
+('Project_Kickoff_2024.docx'),
+('Product_Tracking_2024.xlsx'),
+('Client_Inquiry_Records_2024.xlsx'),
+('Marketing_Research_2024.xlsx'),
+('Supplier_Requests_2024.csv'),
+('Project_Tracking_2024.xlsx'),
+('Client_Account_Summary_2024.xlsx'),
+('Employee_Health_Records_2024.pdf'),
+('Corporate_Training_Records_2024.xlsx'),
+('Business_Process_Analysis_2024.pdf'),
+('Sales_Analysis_2024.xlsx'),
+('Annual_Customer_Survey_2024.xlsx'),
+('Legal_Agreements_2024.pdf'),
+('Business_Risk_Analysis_2024.xlsx'),
+('Product_Catalog_2024.pdf'),
+('IT_Incident_Reports_2024.xlsx'),
+('Financial_Statements_2024.xlsx'),
+('Vendor_Analysis_2024.xlsx'),
+('Customer_Billing_Records_2024.csv'),
+('Employee_Performance_Review_2024.xlsx'),
+('Contract_Analysis_2024.pdf'),
+('Annual_Income_Statements_2024.xlsx'),
+('Employee_Expenses_2024.xlsx'),
+('Sales_Performance_2024.xlsx'),
+('Supplier_Invoices_2024.xlsx'),
+('Business_Impact_Analysis_2024.xlsx'),
+('Corporate_Mergers_2024.xlsx'),
+('Product_Lifecycle_2024.pdf'),
+('Legal_Complaints_2024.pdf'),
+('Customer_Invoice_Records_2024.xlsx'),
+('Marketing_Campaign_Analysis_2024.xlsx'),
+('Product_Pricing_Reports_2024.xlsx'),
+('Employee_Training_Sessions_2024.xlsx'),
+('Corporate_Profitability_2024.xlsx'),
+('Client_Communication_Plan_2024.xlsx'),
+('Annual_Review_2024.xlsx'),
+('Supplier_Analysis_2024.xlsx'),
+('Sales_Tracking_2024.xlsx'),
+('Project_Performance_2024.xlsx'),
+('Product_Manufacturing_2024.xlsx'),
+('Business_Growth_2024.xlsx'),
+('Employee_Motivation_2024.xlsx'),
+('Quarterly_Expenses_2024.xlsx'),
+('Employee_Timesheets_2024.xlsx'),
+('Product_Feature_Analysis_2024.pdf'),
+('Client_Account_Review_2024.xlsx'),
+('Sales_Metrics_2024.xlsx'),
+('Service_Contract_2024.pdf'),
+('Product_Performance_2024.xlsx'),
+('Marketing_Strategy_2024_Updated.xlsx'),
+('Employee_Engagement_2024.xlsx'),
+('Customer_Account_Review_2024.xlsx'),
+('Client_Performance_Review_2024.xlsx'),
+('Sales_Analysis_Quarterly_2024.xlsx');
+'''
+
+cursor.execute(FileName)
+
+FileAccess = '''
+INSERT INTO File_Access (employee_id, access_type_id, timestamp, file_id) VALUES
+(7, 4, '2024-03-25 07:32:15', 52),
+(2, 2, '2024-03-25 09:10:53', 98),
+(15, 6, '2024-03-25 10:24:46', 11),
+(30, 1, '2024-03-25 11:45:20', 76),
+(21, 5, '2024-03-25 13:05:12', 34),
+(12, 7, '2024-03-25 14:23:39', 58),
+(5, 3, '2024-03-25 15:10:30', 25),
+(11, 8, '2024-03-25 16:30:40', 84),
+(8, 9, '2024-03-25 17:12:27', 3),
+(22, 10, '2024-03-25 18:00:01', 92),
+(9, 1, '2024-03-25 19:10:55', 41),
+(19, 6, '2024-03-25 20:22:47', 15),
+(33, 2, '2024-03-25 21:40:33', 67),
+(14, 4, '2024-03-25 22:15:02', 73),
+(16, 5, '2024-03-25 23:30:17', 12),
+(27, 3, '2024-03-26 00:05:29', 99),
+(17, 7, '2024-03-25 00:10:14', 64),
+(11, 8, '2024-03-25 00:47:56', 82),
+(8, 9, '2024-03-25 01:05:32', 55),
+(24, 10, '2024-03-25 01:35:28', 71),
+(19, 2, '2024-03-25 02:03:47', 36),
+(5, 5, '2024-03-25 02:42:21', 95),
+(13, 6, '2024-03-25 03:20:50', 88),
+(22, 4, '2024-03-25 03:57:17', 42),
+(14, 3, '2024-03-25 04:35:10', 27),
+(29, 1, '2024-03-25 05:12:29', 81),
+(9, 7, '2024-03-25 05:50:48', 19),
+(3, 8, '2024-03-25 06:20:01', 77),
+(6, 9, '2024-03-25 06:45:37', 61),
+(20, 10, '2024-03-25 07:13:04', 66),
+(28, 5, '2024-03-25 07:42:17', 47),
+(16, 4, '2024-03-25 08:10:43', 13),
+(30, 2, '2024-03-25 08:38:59', 92),
+(26, 3, '2024-03-25 09:07:12', 72),
+(18, 7, '2024-03-25 09:35:28', 53),
+(10, 8, '2024-03-25 10:04:43', 98),
+(23, 9, '2024-03-25 10:31:14', 33),
+(7, 10, '2024-03-25 11:00:26', 50),
+(12, 1, '2024-03-25 11:35:57', 26),
+(25, 2, '2024-03-25 12:05:34', 91),
+(4, 3, '2024-03-25 12:42:58', 44),
+(15, 5, '2024-03-25 13:11:21', 39),
+(2, 6, '2024-03-25 13:40:18', 83),
+(21, 4, '2024-03-25 14:10:05', 80),
+(1, 9, '2024-03-25 14:39:42', 23),
+(25, 8, '2024-03-25 15:07:16', 70),
+(17, 7, '2024-03-25 15:40:52', 65);
+'''
+
+
+cursor.execute(FileAccess)
+
+
+
+query = "SELECT * FROM dbo.Roles_Permissions"
+
+
+cursor.execute(query)
+rows = cursor.fetchall()
+columns = [column[0] for column in cursor.description]
+print(" | ".join(columns))
+for row in rows:
+    print(" | ".join(str(value) for value in row))
+
+show_tables_query = '''
+SELECT TABLE_SCHEMA, TABLE_NAME
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_TYPE = 'BASE TABLE';
+'''
+
+cursor.execute(show_tables_query)
+
+print("Tables in the database:")
+for row in cursor.fetchall():
+    print(f"{row.TABLE_SCHEMA}.{row.TABLE_NAME}")
+
+import random
+
+department_roles = {
+    'Finance': (1, 5),
+    'IT': (6, 10),
+    'HR': (11, 15),
+    'Cybersecurity': (16, 20),
+    'Operations': (21, 25)
+}
+
+cursor.execute("SELECT email, Department FROM Employee_Data")
+employees = cursor.fetchall()
+
+for email, department in employees:
+    if department in department_roles:
+        new_role_ID = random.randint(*department_roles[department])
+        cursor.execute("""
+            UPDATE Employee_Data 
+            SET role_ID = ? 
+            WHERE email = ?
+        """, (new_role_ID, email))
+        print(f"Updated {email} - {department} -> New Role ID: {new_role_ID}")
+
+cursor.execute("DELETE FROM Roles")
+print("Cleared old role data.")
+department_roles = {
+    'Finance': [
+        (1, 'Junior Accountant'), (2, 'Mid Accountant'), (3, 'Senior Accountant'),
+        (4, 'CFO'), (5, 'Finance Director')
+    ],
+    'IT': [
+        (6, 'Junior IT Analyst'), (7, 'Mid IT Analyst'), (8, 'Senior IT Analyst'),
+        (9, 'IT Manager'), (10, 'CTO')
+    ],
+    'HR': [
+        (11, 'Junior HR Manager'), (12, 'Mid HR Manager'), (13, 'Senior HR Manager'),
+        (14, 'HR Director'), (15, 'Chief HR Officer')
+    ],
+    'Cybersecurity': [
+        (16, 'Junior Cybersecurity Analyst'), (17, 'Mid Cybersecurity Analyst'),
+        (18, 'Senior Cybersecurity Analyst'), (19, 'Cybersecurity Manager'),
+        (20, 'Chief Security Officer')
+    ],
+    'Operations': [
+        (21, 'Junior Operations Analyst'), (22, 'Mid Operations Analyst'),
+        (23, 'Senior Operations Analyst'), (24, 'Operations Manager'),
+        (25, 'COO')
+    ]
+}
+
+cursor.execute("SET IDENTITY_INSERT Roles ON")
+
+for department, roles in department_roles.items():
+    for role_id, role_name in roles:
+        cursor.execute("""
+            INSERT INTO Roles (role_ID, role_name) 
+            VALUES (?, ?)
+        """, (role_id, role_name))
+        print(f"Inserted: Role ID {role_id} -> {role_name}")
+
+cursor.execute("SET IDENTITY_INSERT Roles OFF")
+
+cursor.execute("SELECT * FROM Employee_Data")
+
+rows = cursor.fetchall()
+for row in rows:
+    print(row)
+
+tables = [
+    "Employee_Data", "Roles", "Permissions", "Roles_Permissions",
+    "Protocol_Data", "Network_Usage", "Access_Type", "File_Data",
+    "File_Access", "Security_Incidents", "Incident_Response",
+    "Detection_Method", "Detected_By", "Incident_Detection"
+]
+
+empty_tables = []
+
+for table in tables:
+    try:
+        cursor.execute(f"SELECT COUNT(*) FROM {table}")
+        count = cursor.fetchone()[0]
+        if count == 0:
+            empty_tables.append(table)
+        print(f"Table '{table}' has {count} rows.")
+    except Exception as e:
+        print(f"Error checking table '{table}': {e}")
+
+if empty_tables:
+    print("\nThe following tables are empty:")
+    for table in empty_tables:
+        print(f"- {table}")
+else:
+    print("\nAll tables contain data.")
+
+query = """
+SELECT e.first_name, e.last_name, e.Department, r.role_name
+FROM Employee_Data e
+INNER JOIN Roles r ON e.role_ID = r.role_ID;
+"""
+
+cursor.execute(query)
+rows = cursor.fetchall()
+
+for row in rows:
+    print(row)
+
+import pyodbc
+
+server = 'tcp:mcruebs04.isad.isadroot.ex.ac.uk'
+database = 'BEMM459_GroupAC'
+username = 'GroupAC'
+password = 'NauX781*Ek'
+
+serverstring = ('DRIVER={SQL Server};SERVER='+server+';DATABASE='+database+';UID='+username+';PWD='+ password+';TrustServerCertificate=yes;Encrypt=no;')
+
+cnxn = pyodbc.connect(serverstring)
+cursor = cnxn.cursor()
+
+permissions_for_employees = {
+    'Alice Johnson': [6, 5],  
+    'Amy Scott': [1, 2],  
+    'Ava Russell': [1, 2],  
+    'Blake Simmons': [1, 2],  
+    'Bob Smith': [1, 2],  
+    'Brian Green': [3, 4],  
+    'Cameron Barnes': [3, 4],  
+    'Charlie Brown': [3, 4], 
+    'Chloe Adams': [7, 8],  
+    'Daniel Baker': [7, 8],  
+    'David Wilson': [7, 8],  
+    'Diana Henderson': [7, 8],  
+    'Ella Gonzalez': [1, 2],  
+    'Emma Davis': [9, 10], 
+    'Ethan Coleman': [9, 10],  
+    'Finn Nelson': [9, 10],  
+    'Fiona Powell': [1, 2],  
+    'Frank Miller': [4, 3],  
+    'Gavin Jenkins': [1, 2], 
+    'George Carter': [3, 4],  
+    'Grace Moore': [1, 2],  
+    'Hailey Patterson': [3, 4], 
+    'Hannah Taylor': [3, 4], 
+    'Holly Mitchell': [7, 8],  
+    'Ian Perez': [9, 10],  
+    'Isaac Anderson': [7, 8],  
+    'Isaiah Hughes': [7, 8],  
+    'Jack Thomas': [9, 10],  
+    'Jane Roberts': [1, 2],  
+    'Kelly White': [1, 2],  
+    'Kevin Phillips': [9, 10],  
+    'Laura Evans': [3, 4],  
+    'Liam Harris': [9, 10],  
+    'Mason Edwards': [7, 8], 
+    'Mia Martin': [3, 4],  
+    'Natalie Collins': [9, 10],  
+    'Noah Thompson': [7, 8],  
+    'Olivia Garcia': [9, 10],  
+    'Oscar Stewart': [6, 5],  
+    'Paul Morris': [9, 10],  
+    'Peter Martinez': [1, 2],  
+    'Quinn Robinson': [9, 10],  
+    'Rebecca Nguyen': [3, 4],  
+    'Ryan Clark': [3, 4], 
+    'Samuel Murphy': [7, 8],  
+    'Sophia Rodriguez': [7, 8], 
+    'Tina Rivera': [9, 10],  
+    'Tyler Lewis': [9, 10], 
+    'Uma Lee': [1, 2],  
+    'Ursula Foster': [1, 2],  
+    'Victor Walker': [9, 10],  
+    'Vince Hayes': [1, 2],  
+    'Walter Perry': [3, 4],  
+    'Wendy Hall': [3, 4],  
+    'Xander Allen': [7, 8],  
+    'Xenia Long': [7, 8],  
+    'Yara Young': [9, 10],  
+    'Yasmine Bryant': [9, 10],  
+    'Zach King': [1, 2],  
+    'Zane Griffin': [1, 2]  
+}
+
+for employee, permissions in permissions_for_employees.items():
+    cursor.execute("SELECT e.employee_id, r.role_id FROM Employee_Data e JOIN Roles r ON e.role_ID = r.role_id WHERE e.first_name + ' ' + e.last_name = ?", (employee,))
+    result = cursor.fetchone()
+    if result:
+        employee_id, role_id = result
+        for permission_id in permissions:
+            cursor.execute("""
+                SELECT COUNT(*) FROM Roles_Permissions
+                WHERE role_id = ? AND permission_id = ?
+            """, (role_id, permission_id))
+            count = cursor.fetchone()[0]
+            if count == 0:
+                cursor.execute("""
+                    INSERT INTO Roles_Permissions (role_id, permission_id) 
+                    VALUES (?, ?)
+                """, (role_id, permission_id))
+                print(f"Inserted: Employee {employee}, Role ID {role_id}, Permission ID {permission_id}")
+            else:
+                print(f"Skipped: Employee {employee}, Role ID {role_id}, Permission ID {permission_id} (Already exists)")
+
+query = """
+SELECT e.first_name, e.last_name, r.role_name, COALESCE(p.permission_description, 'No permissions assigned') AS permission_description
+FROM Employee_Data e
+JOIN Roles r ON e.role_ID = r.role_id
+LEFT JOIN Roles_Permissions rp ON r.role_id = rp.role_id
+LEFT JOIN Permissions p ON rp.permission_id = p.permission_id
+ORDER BY e.first_name, e.last_name, r.role_name, permission_description;
+"""
+
+cursor.execute(query)
+
+rows = cursor.fetchall()
+
+if rows:
+    print("Roles and Permissions for Every Employee:")
+    for row in rows:
+        print(f"{row.first_name} {row.last_name} - {row.role_name}: {row.permission_description}")
+else:
+    print("No data found or no permissions assigned to employees.")
+
+SELECT timestamp FROM Security_Incidents;
+'''
+incident_data = pd.read_sql(incident_query, cnxn)
+incident_data['timestamp'] = pd.to_datetime(incident_data['timestamp'])
+
+# Plot histogram of security incidents over time
+plt.figure(figsize=(10, 5))
+plt.hist(incident_data['timestamp'], bins=20, color='red', alpha=0.7, edgecolor='black', linewidth=1.2)
+plt.xlabel('Time')
+plt.ylabel('Number of Incidents')
+plt.title('Security Incidents Over Time')
+plt.xticks(rotation=45)
+plt.show()
+
+# Query for response times
+response_query = '''
+SELECT si.incident_type, 
+       DATEDIFF(MINUTE, ir.response_start_time, ir.response_end_time) AS response_time
+FROM Security_Incidents si
+JOIN Incident_Response ir ON si.incident_id = ir.incident_id;
+'''
+response_data = pd.read_sql(response_query, cnxn)
+
+# Calculate average response time per incident type
+avg_response = response_data.groupby('incident_type')['response_time'].mean().reset_index()
+
+# Plot bar chart of average response times
+plt.figure(figsize=(10, 5))
+plt.bar(avg_response['incident_type'], avg_response['response_time'], color='blue', alpha=0.7, edgecolor='black', linewidth=1.2)
+plt.xlabel('Incident Type')
+plt.ylabel('Avg Response Time (minutes)')
+plt.title('Average Response Time per Incident Type')
+plt.xticks(rotation=45)
+plt.show()
+
+cnxn.commit()
