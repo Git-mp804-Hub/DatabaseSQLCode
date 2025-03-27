@@ -964,6 +964,260 @@ if rows:
 else:
     print("No data found or no permissions assigned to employees.")
 
+import subprocess
+import sys
+
+#-------------------------------------------------------------------------------------------------------------------------------------------
+#MONGODB
+
+
+#This function helps to automate the process of package installation 
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+install("pymongo")
+
+import pymongo
+mongoclient = pymongo.MongoClient("mongodb://localhost:27017/") #Connecting to the port-- 27017
+
+print(mongoclient.list_database_names())
+
+#Defining a user function to check if database exists - In MongoDB, a database is not created until it gets content. 
+def check_DatabaseExists(argDBName):
+    local_dblist = mongoclient.list_database_names()
+    if argDBName in local_dblist:
+        return f"The database {argDBName} exists."
+    else:
+        return f"The database {argDBName} does not exist."
+
+#Defining a user function to check if a collection exists - In MongoDB, a collection is not created until it gets content. 
+def check_CollectionExists(argDBName, argCollName, local_mydb):
+    local_collist = local_mydb.list_collection_names()
+    if argCollName in local_collist:
+        return f"The collection {argCollName} exists in database {argDBName}."
+    else:
+        return f"The collection {argCollName} does not exist in database {argDBName}."
+
+print(check_DatabaseExists("Cybersecurity_Dep"))
+
+mydb = mongoclient["Cybersecurity_Dep"]
+print(type(mydb))
+
+access_logs = mydb["Access_logs"]
+print(type(access_logs))
+
+from datetime import datetime, timedelta
+
+employee_ids = [f"EMP{str(i).zfill(3)}" for i in range(1, 61)]
+vendors_ids = [f"VEND{str(i).zfill(2)}" for i in range(1, 20)]
+
+all_ids = employee_ids + vendors_ids
+random_ids = random.choices(all_ids, k=60)
+
+statuses = ["Successful", "Failed"]
+browsers = ["Chrome", "Firefox", "Edge", "Safari", "Opera"]
+devices = ["Laptop", "Desktop", "Mobile", "Tablet"]
+locations = [
+    # UK Cities
+    {"City": "London", "Country": "UK"},
+    {"City": "Manchester", "Country": "UK"},
+    {"City": "Birmingham", "Country": "UK"},
+    {"City": "Glasgow", "Country": "UK"},
+    {"City": "Edinburgh", "Country": "UK"},
+    {"City": "Bristol", "Country": "UK"},
+    {"City": "Liverpool", "Country": "UK"},
+    {"City": "Leeds", "Country": "UK"},
+    {"City": "Sheffield", "Country": "UK"},
+    {"City": "Cardiff", "Country": "UK"},
+    {"City": "Belfast", "Country": "UK"},
+    {"City": "Newcastle", "Country": "UK"},
+
+    # Europe
+    {"City": "Berlin", "Country": "Germany"},
+    {"City": "Munich", "Country": "Germany"},
+    {"City": "Hamburg", "Country": "Germany"},
+    {"City": "Paris", "Country": "France"},
+    {"City": "Lyon", "Country": "France"},
+    {"City": "Madrid", "Country": "Spain"},
+    {"City": "Barcelona", "Country": "Spain"},
+    {"City": "Rome", "Country": "Italy"},
+    {"City": "Milan", "Country": "Italy"},
+    {"City": "Amsterdam", "Country": "Netherlands"},
+    {"City": "Brussels", "Country": "Belgium"},
+    {"City": "Vienna", "Country": "Austria"},
+    {"City": "Stockholm", "Country": "Sweden"},
+    {"City": "Copenhagen", "Country": "Denmark"},
+    {"City": "Oslo", "Country": "Norway"},
+
+    # North America
+    {"City": "New York", "Country": "USA"},
+    {"City": "Los Angeles", "Country": "USA"},
+    {"City": "Chicago", "Country": "USA"},
+    {"City": "San Francisco", "Country": "USA"},
+    {"City": "Toronto", "Country": "Canada"},
+    {"City": "Vancouver", "Country": "Canada"},
+    {"City": "Montreal", "Country": "Canada"},
+    {"City": "Mexico City", "Country": "Mexico"},
+
+    # Asia
+    {"City": "Tokyo", "Country": "Japan"},
+    {"City": "Osaka", "Country": "Japan"},
+    {"City": "Seoul", "Country": "South Korea"},
+    {"City": "Beijing", "Country": "China"},
+    {"City": "Shanghai", "Country": "China"},
+    {"City": "Singapore", "Country": "Singapore"},
+    {"City": "Bangkok", "Country": "Thailand"},
+    {"City": "Jakarta", "Country": "Indonesia"},
+    {"City": "Hong Kong", "Country": "China"},
+
+    # Australia & Middle East
+    {"City": "Sydney", "Country": "Australia"},
+    {"City": "Melbourne", "Country": "Australia"},
+    {"City": "Brisbane", "Country": "Australia"},
+    {"City": "Dubai", "Country": "UAE"},
+    {"City": "Abu Dhabi", "Country": "UAE"},
+    {"City": "Doha", "Country": "Qatar"},
+    {"City": "Riyadh", "Country": "Saudi Arabia"},
+    {"City": "Istanbul", "Country": "Turkey"}
+]
+
+email_subjects = [
+    "Urgent: Verify Your Credentials",
+    "Your Password Has Been Compromised",
+    "Action Required: Update Your Info",
+    "Win a Free Trip to Hawaii!",
+    "Confirm Your Email Address Now",
+    "Security Alert: Suspicious Login Attempt",
+    "Important: Program Update",
+    "Congratulations! You've Won a Prize",
+    "Account Access Suspended - Verify Now",
+]
+    
+email_senders = [
+    "security@fakebank.com",
+    "support@alertbank.com",
+    "no-reply@secure-updates.com",
+    "admin@banking.com",
+    "info@scam-alerts.com",
+    "customer-care@phishingscam.com",
+]
+    
+ip_addresses = [f"192.168.{random.randint(1, 255)}.{random.randint(1, 255)}" for _ in range(50)]
+
+access_logs_data = [
+    {
+        "_ID": random.choice(all_ids),
+        "TIMESTAMP": datetime.now() - timedelta(days=random.randint(0, 30), hours=random.randint(0, 23), minutes=random.randint(0, 59)),
+        "IP_ADDRESS": random.choice(ip_addresses),
+        "DEVICE": random.choice(devices),
+        "BROWSER": random.choice(browsers),
+        "LOCATION": random.choice(locations),
+        "STATUS": random.choice(statuses)
+    }
+    for _ in range(60)
+
+var = access_logs.insert_many(access_logs_data)
+
+#Show documents in collection "customersTest"
+myresult = access_logs.find()
+
+#print the result:
+for x in myresult:
+    print(x)
+
+phishing = mydb["Phishing_attacks"]
+print(type(phishing))
+
+phishing_attacks_data = [
+    {
+        "PHISHING_ID": f"PH{str(i).zfill(3)}",
+        "_ID": random.choice(all_ids),
+        "ANOMALY_SCORE": round(random.uniform(0.5, 1.0), 2),
+        "EMAIL_SUBJECT": random.choice(email_subjects),
+        "EMAIL_SENDER": random.choice(email_senders),
+        "LINK_CLICKED": random.choice([True, False])
+    }
+    for i in range(1, 61)
+]
+
+var2 = phishing.insert_many(phishing_attacks_data)
+myresult2 = phishing.find()
+
+#print the result:
+for x in myresult2:
+    print(x)
+
+# Function to count unsuccessful login attempts for a user
+def count_failed_logins(user_id):
+    return user_id, access_logs.count_documents({"_ID": user_id, "STATUS": "Failed"})
+
+for i in all_ids:
+    if count_failed_logins(i)[1] >= 2:
+        users.append(i)
+        print(f"Block {count_failed_logins(i)[0]}  account for 15 mins")
+print(f"Send notification to the cybersecurity team to check the following users: {users}")
+
+# Function to detect users logging in from multiple locations or devices
+def detect_suspicious_logins():
+    user_logins = {}
+    for log in access_logs.find():
+        user_id = log["_ID"]
+        location = log["LOCATION"]["City"] + ", " + log["LOCATION"]["Country"]
+        device = log["DEVICE"]
+
+        if user_id in user_logins:
+            prev_location, prev_device = user_logins[user_id]
+            if prev_location != location or prev_device != device:
+                print(f"Suspicious login detected for {user_id}: "
+                      f"Previously logged in from {prev_location} using {prev_device}, "
+                      f"now logging in from {location} using {device}")
+        user_logins[user_id] = (location, device)
+
+detect_suspicious_logins()
+
+# Function to detect unusual login times
+def detect_unusual_times():
+    normal_hours = (time(6, 0), time(22, 0))  # Define normal login hours (6 AM - 10 PM)
+
+    for log in access_logs.find():
+        login_time = log["TIMESTAMP"].time()
+        if login_time < normal_hours[0] or login_time > normal_hours[1]:
+            print(f"Unusual login time detected for {log['_ID']}: {login_time}")
+
+detect_unusual_times()
+
+high_risk_emails = list(phishing.find({"ANOMALY_SCORE": {"$gt": 0.8}}, {"EMAIL_SENDER": 1, "_ID": 1, "ANOMALY_SCORE": 1 , "_id": 0})) #Filtering the data + projection
+
+for email in high_risk_emails:
+    print(f"Employee ID: {email['_ID']}, Email Sender: {email['EMAIL_SENDER']}, Anomaly score: {email['ANOMALY_SCORE']}")
+
+clicked_count = phishing.count_documents({"LINK_CLICKED": True})
+print(f"Number of phishing emails where the link was clicked: {clicked_count}")
+
+#Group by email sender and count phishing attempts
+pipeline = [
+    {"$group": {"_id": "$EMAIL_SENDER", "count": {"$sum": 1}}}
+] #Helps to automate the process of aggregation 
+
+result = list(phishing.aggregate(pipeline))
+
+for r in result:
+    print(f"Email address: {r['_id']}, Count:  {r['count']}")
+
+#Find the most common phishing email subject
+pipeline = [
+    {"$group": {"_id": "$EMAIL_SUBJECT", "count": {"$sum": 1}}},
+    {"$sort": {"count": -1}}, #sorting
+    {"$limit": 1}
+]
+
+most_common_subject = list(phishing.aggregate(pipeline))
+
+for i in most_common_subject:
+    print(f"Email address: {i['_id']}, Count:  {i['count']}")
+
+#-------------------------------------------------------------------------------------------------------------------------------------------
+
 SELECT timestamp FROM Security_Incidents;
 '''
 incident_data = pd.read_sql(incident_query, cnxn)
