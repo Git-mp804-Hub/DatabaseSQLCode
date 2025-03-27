@@ -1,0 +1,56 @@
+import pyodbc
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Database connection
+server = 'tcp:mcruebs04.isad.isadroot.ex.ac.uk'
+database = 'BEMM459_GroupAC'
+username = 'GroupAC'
+password = 'NauX781*Ek'
+
+serverstring = ('DRIVER={SQL Server};SERVER='+server+';DATABASE='+database+
+                ';UID='+username+';PWD='+ password+';TrustServerCertificate=yes;Encrypt=no;')
+
+cnxn = pyodbc.connect(serverstring)
+cursor = cnxn.cursor()
+
+# Query for security incidents timestamps
+incident_query = '''
+SELECT timestamp FROM Security_Incidents;
+'''
+incident_data = pd.read_sql(incident_query, cnxn)
+incident_data['timestamp'] = pd.to_datetime(incident_data['timestamp'])
+
+# Plot histogram of security incidents over time
+plt.figure(figsize=(10, 5))
+plt.hist(incident_data['timestamp'], bins=20, color='red', alpha=0.7, edgecolor='black', linewidth=1.2)
+plt.xlabel('Time')
+plt.ylabel('Number of Incidents')
+plt.title('Security Incidents Over Time')
+plt.xticks(rotation=45)
+plt.show()
+
+# Query for response times
+response_query = '''
+SELECT si.incident_type, 
+       DATEDIFF(MINUTE, ir.response_start_time, ir.response_end_time) AS response_time
+FROM Security_Incidents si
+JOIN Incident_Response ir ON si.incident_id = ir.incident_id;
+'''
+response_data = pd.read_sql(response_query, cnxn)
+
+# Calculate average response time per incident type
+avg_response = response_data.groupby('incident_type')['response_time'].mean().reset_index()
+
+# Plot bar chart of average response times
+plt.figure(figsize=(10, 5))
+plt.bar(avg_response['incident_type'], avg_response['response_time'], color='blue', alpha=0.7, edgecolor='black', linewidth=1.2)
+plt.xlabel('Incident Type')
+plt.ylabel('Avg Response Time (minutes)')
+plt.title('Average Response Time per Incident Type')
+plt.xticks(rotation=45)
+plt.show()
+
+# Close connection
+cursor.close()
+cnxn.close()
